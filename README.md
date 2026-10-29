@@ -33,17 +33,35 @@ cp .env.example .env
 
 ### Basic usage (output will be saved as `audio.srt`):
 ```bash
-python whisper_to_srt.py audio.mp3
+whisper-to-srt audio.mp3
 ```
 
 ### Specify custom output path:
 ```bash
-python whisper_to_srt.py podcast.mp3 subtitles.srt
+whisper-to-srt podcast.mp3 subtitles.srt
 ```
+
+### Long files, other models, language and vocabulary hints:
+```bash
+whisper-to-srt lecture.mp4 lecture.txt \
+  --chunk-seconds 130 \
+  --model gpt-4o-transcribe \
+  --language zh \
+  --prompt "繁體中文，加上標點。專有名詞：inflammaging、TNF-α、plantain。"
+```
+
+Pass `--chunk-seconds` for anything longer than a few minutes. A single request for
+ten minutes of audio can return HTTP 200 with a transcript that stops early; chunking
+bounds the request and makes truncation visible per chunk. The same `--prompt` is sent
+with every chunk, which keeps spellings of names and terms consistent across boundaries.
+
+`--model whisper-1` returns SRT with timestamps. `gpt-4o-transcribe` and
+`gpt-4o-mini-transcribe` return plain text (no timestamps are available), so chunks are
+concatenated as prose and the default output extension becomes `.txt`.
 
 ### Use as a Python module:
 ```python
-from whisper_to_srt import convert_to_srt
+from whisper_cli_nano import convert_to_srt
 
 # Convert with default settings
 convert_to_srt("podcast.mp3")
@@ -51,8 +69,18 @@ convert_to_srt("podcast.mp3")
 # Specify output path
 convert_to_srt("podcast.mp3", "output/subtitles.srt")
 
+# Force chunking, pick a model, hint language and vocabulary
+convert_to_srt("lecture.mp4", "lecture.txt", chunk_seconds=130,
+               model="gpt-4o-transcribe", language="zh", prompt="proper nouns here")
+
 # Use custom API key
 convert_to_srt("podcast.mp3", api_key="sk-...")
+```
+
+## Testing
+
+```bash
+uv run --project . python tests/test_chunking.py
 ```
 
 ## Requirements
